@@ -84,24 +84,9 @@ app = FastAPI(
 
 # Add rate limiter
 app.state.limiter = limiter
-app.add_exception_handler(
-    Exception,
-    lambda request, exc: JSONResponse(
-        status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-        content={"detail": "Rate limit exceeded"},
-    ) if "rate limit" in str(exc).lower() else None
-)
 
-
-# Configure CORS
-cors_origins = []
-if isinstance(settings.CORS_ORIGINS, str):
-    cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",")]
-elif isinstance(settings.CORS_ORIGINS, list):
-    cors_origins = settings.CORS_ORIGINS
-
-# Add common development origins
-additional_origins = [
+# Configure CORS FIRST (before other middleware)
+cors_origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:5173",
@@ -114,24 +99,25 @@ additional_origins = [
     "http://127.0.0.1:8080",
     # Vercel production URLs
     "https://smart-planner-x787.vercel.app",
-    "https://smart-planner-x787-f92r81esu-tanirawats-projects.vercel.app",
 ]
 
-# Also allow any vercel.app subdomain
-vercel_pattern = ".vercel.app"
-
-for origin in additional_origins:
-    if origin not in cors_origins:
-        cors_origins.append(origin)
-
-# In production, allow all origins for now (can be tightened later)
-allow_all_origins = settings.ENVIRONMENT != "development"
+# Add any origins from settings
+if isinstance(settings.CORS_ORIGINS, str):
+    for o in settings.CORS_ORIGINS.split(","):
+        origin = o.strip()
+        if origin and origin not in cors_origins:
+            cors_origins.append(origin)
+elif isinstance(settings.CORS_ORIGINS, list):
+    for origin in settings.CORS_ORIGINS:
+        if origin not in cors_origins:
+            cors_origins.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if allow_all_origins else cors_origins,
+    allow_origins=cors_origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # Allow all vercel.app subdomains
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*", "Content-Length", "X-Total-Count"],
     max_age=3600,
