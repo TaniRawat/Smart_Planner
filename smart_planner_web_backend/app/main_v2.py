@@ -112,15 +112,24 @@ additional_origins = [
     "http://127.0.0.1:5175",
     "http://localhost:8080",
     "http://127.0.0.1:8080",
+    # Vercel production URLs
+    "https://smart-planner-x787.vercel.app",
+    "https://smart-planner-x787-f92r81esu-tanirawats-projects.vercel.app",
 ]
+
+# Also allow any vercel.app subdomain
+vercel_pattern = ".vercel.app"
 
 for origin in additional_origins:
     if origin not in cors_origins:
         cors_origins.append(origin)
 
+# In production, allow all origins for now (can be tightened later)
+allow_all_origins = settings.ENVIRONMENT != "development"
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=["*"] if allow_all_origins else cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
