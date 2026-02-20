@@ -10,10 +10,11 @@ from app.routers.auth import get_current_user
 router = APIRouter(prefix="/ai", tags=["AI Tutor"])
 
 # Load OpenAI API key from environment variable
+
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise RuntimeError("OPENAI_API_KEY not set in environment variables.")
-openai.api_key = OPENAI_API_KEY
+client = openai.OpenAI(api_key=OPENAI_API_KEY)
 
 
 class SummarizeRequest(BaseModel):
@@ -33,7 +34,7 @@ async def summarize_text(
 ):
     """Summarize text using OpenAI"""
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful study assistant. Summarize the following text."},
@@ -66,7 +67,7 @@ async def breakdown_task(
         "Return the subtasks as a numbered list."
     )
     try:
-        response = openai.ChatCompletion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {"role": "system", "content": "You are a helpful assistant that breaks down tasks for students."},
